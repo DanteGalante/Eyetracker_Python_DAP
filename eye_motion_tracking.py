@@ -6,22 +6,44 @@ import numpy as np
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 
-
-
 cap = cv2.VideoCapture("eye_recording.flv")
-wb = Workbook()
+#face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_lefteye_2splits.xml')
 
+ret, frame = cap.read()
+
+gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+eyes = eye_cascade.detectMultiScale(frame, 1.1, 5)
+
+eyeArray = str(eyes[0])
+print(eyeArray)
+static_face = np.ndarray.tolist(eyes[0])
+print(static_face[0])
+ex = static_face[0]
+ey = static_face[1]
+ew = static_face[2]
+eh = static_face[3]
+frameStatic = frame
+
+wb = Workbook()
 dest_filename = 'coordenadas.xlsx'
 ws1 = wb.active
 ws1.title = "Coordenadas"
+headers = ['Eje X', 'Eje Y', 'Tiempo en segundos', 'Tiempo en milisegundos']
+ws1.append(headers)
 
+fps = cap.get(cv2.CAP_PROP_FPS)
 
 while True:
     ret, frame = cap.read()
     if ret is False:
         break
 
-    roi = frame[269: 795, 537: 1416]
+    timestamps = [cap.get(cv2.CAP_PROP_POS_MSEC)]
+    timeSeconds = (round((timestamps[0] / 1000), 2))
+
+    roi = frame[ey:ey+eh, ex:ex+ew]
     rows, cols, _ = roi.shape
     gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     gray_roi = cv2.GaussianBlur(gray_roi, (7, 7), 0)
@@ -40,8 +62,11 @@ while True:
         center = (x + w // 2, y + h // 2)
         radius = 2
         cv2.circle(roi, center, radius, (255, 255, 0), 2)
-        ws1.append(center)
 
+
+        rowData = [x + w // 2, y + h // 2, timeSeconds, timestamps[0]]
+        ws1.append(rowData)
+        print(rowData)
 
         break
 
@@ -51,6 +76,7 @@ while True:
     key = cv2.waitKey(30)
     if key == 27:
         break
+
 wb.save(filename = dest_filename)
 
 cv2.destroyAllWindows()
