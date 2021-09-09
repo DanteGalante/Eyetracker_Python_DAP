@@ -9,11 +9,16 @@ from openpyxl.utils import get_column_letter
 
 
 cap = cv2.VideoCapture("eye_recording.flv")
-wb = Workbook()
 
+
+wb = Workbook()
 dest_filename = 'coordenadas.xlsx'
 ws1 = wb.active
 ws1.title = "Coordenadas"
+headers = ['Eje X', 'Eje Y', 'Tiempo en segundos', 'Tiempo en milisegundos']
+ws1.append(headers)
+
+fps = cap.get(cv2.CAP_PROP_FPS)
 
 
 while True:
@@ -21,7 +26,10 @@ while True:
     if ret is False:
         break
 
-    roi = frame[269: 795, 537: 1416]
+    timestamps = [cap.get(cv2.CAP_PROP_POS_MSEC)]
+    timeSeconds = (round((timestamps[0] / 1000), 2))
+
+    roi = frame[369: 805, 900: 1700]
     rows, cols, _ = roi.shape
     gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     gray_roi = cv2.GaussianBlur(gray_roi, (7, 7), 0)
@@ -40,10 +48,14 @@ while True:
         center = (x + w // 2, y + h // 2)
         radius = 2
         cv2.circle(roi, center, radius, (255, 255, 0), 2)
-        ws1.append(center)
 
+
+        rowData = [x + w // 2, y + h // 2, timeSeconds, timestamps[0]]
+        ws1.append(rowData)
+        print(rowData)
 
         break
+
 
     cv2.imshow("Threshold", threshold)
     cv2.imshow("gray roi", gray_roi)
@@ -51,6 +63,7 @@ while True:
     key = cv2.waitKey(30)
     if key == 27:
         break
+
 wb.save(filename = dest_filename)
 
 cv2.destroyAllWindows()
